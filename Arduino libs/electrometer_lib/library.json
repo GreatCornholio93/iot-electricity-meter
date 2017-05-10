@@ -1,0 +1,11 @@
+{
+	"name": "electrometer",
+	"keywords": "electrometer, OBIS, IEC 62056-21",
+	"description": "Read and parse data from electrometer using optical interface according to the IEC standard 62056-21",
+	"repository": {
+		"type": "git",
+		"url": "https://bitbucket.org/The_Great_Cornholio/electrometer-project"
+	},
+	"frameworks": "arduino",
+	"platforms": ["atmelavr", "atmelsam"]
+}

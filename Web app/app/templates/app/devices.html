@@ -1,0 +1,60 @@
+{% include 'app/header.html' %}
+{% load staticfiles %}
+<body>
+
+<main>
+    <div class="container">
+        <h2>List of devices:</h2>
+        <a href="/devices/new/add/" class="waves-effect waves-light btn">Add new device<span
+                class="glyphicon glyphicon-plus"></span></a>
+        <ul class="collection">
+            {% for lib in devices_list %}
+            <li class="collection-item avatar">
+                <img src="{% static 'img/sig.jpg' %}" alt="" class="circle">
+                <span class="title"><a href="/devices/{{ lib.sigfoxID }}/">{{ lib.sigfoxID }}</a></span>
+                <p>{{ lib.description }}<br>
+                    Last message: {{ lib.regularTime }}<br>
+                    <br>
+                
+                    
+                    <button type="submit" value="Delete" class="waves-effect waves-light btn red darken-1" data-target="modal1">Delete</button>
+
+                             <!-- Modal Structure -->
+      <div id="modal1" class="modal">
+        <div class="modal-content">
+          <h4>Are you sure?</h4>
+          <p>Do you really want to delete this device and every data that was captured by this little bad boy?</p>
+        </div>
+        <div class="modal-footer">
+        <form action="/devices/device/delete/" method="post">
+                    {% csrf_token %}
+                    <input type="hidden" value="{{ lib.sigfoxID }}" name="delete_device_id">
+           <button type="submit" value="Delete" class="waves-effect waves-light btn red darken-1">Yeah</button>
+          <a href="#!" class="modal-action modal-close waves-effect waves-green btn-flat">No</a> 
+          </form>
+        </div>
+      </div>
+                
+                <!--<a href="/devices/device/delete/{{lib.sigfoxID}}" class="waves-effect waves-light btn red darken-1">Delete<span-->
+                <!--class="glyphicon glyphicon-plus"></span></a>-->
+
+            </li>
+            {% endfor %}
+        </ul>
+
+
+    </div>
+
+    <script type="text/javascript" src="https://code.jquery.com/jquery-2.1.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.98.2/js/materialize.min.js"></script>
+        <script type="text/javascript">
+      $(document).ready(function(){
+  
+    $('.modal').modal();
+  });
+
+      
+    </script>
+
+</main>
+{% include 'app/footer.html' %}

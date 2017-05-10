@@ -1,0 +1,9 @@
+<div class="nav">
+<ul>
+    <li><img src="/static/img/logo-sigfox.png" alt="" class="logo_sigfox"></li>
+    {% for item in menu %}
+    {% if item.separator %}<li>------------</li>{% endif %}
+    <li><a href="{{ item.url }}">{{ item.title }}</a></li>
+    {% endfor %}
+</ul>
+</div>

@@ -1,0 +1,137 @@
+# IOT - Sigfox Semestral Project
+
+Following pages contains technical documentation to the semestral project that was dedicated to the internet of things (IOT). More specifically to the implementation of "smart" electrometer that is sending data to the SIGFOX which is global provider of the IOT. Data that are stored on the SIGFOX servers are presented by web application.
+
+# What is SIGFOX?
+The primary technology of this project should be introduced - Sigfox is a IoT wireless network system utilizing ETSI's (European Telecommunications Standards Institute) specification for Low Throughput Networks (LTN) and Ultra Narrow-Band (UNB) modulation. The signal that is send is specifically the uplink between the IoT device and the central network station. This uplink employs BPSK modulation with ultra-narrowband technology and pseudo-random frequency hopping. Messages are very short. User has a maximum of 12 bytes of info available.
+
+![](https://i.imgur.com/rPHbiaG.png)
+*Image 1: Basic Sigfox functionality*
+
+
+# Technical specification
+Let's start from the lowest layer - hardware. For the project was used modified Arduino UNO with Radiocrafts RC1682 transreceiver. There are 6 digital input/outputs, analog input/output, UART and digital input for processor interrupt. There is antenna lambda/4 length (recommended by Radiocrafts) too. The data are captured from the IEC 62056-21 standart optical interface. Reading probe is connected to the Arduino by serial port. Radiocraft chip is connected to the digital ports of the Arduino. 
+
+# Programmed libraries
+There are two libraries that were written for the purposes of this project. One is dealing with Radiocrafts module (Sigfox_lib) and the second one is dealing with reading from electrometer (Electrometer_lib). Both of them are written in C++ that is slightly modified for Arduino. The following lines will provide a more detailed description of these libraries.
+
+# Sigfox_lib
+
+This library contains some basic methods like getTemperature() (of the Radiocrafts chip). The most important function is probably sendString(String s) that sends string to the IoT by Radiocrafts chip. There is alternative for sending data function too It is called sendBytes() that will sends bytes.
+
+So first of all object must be created. That can be done by calling constructor:
+```cpp
+Sigfox sgf(7, 8, 19200);
+// 7 = rx, 8 = tx, 19200 = bauds
+```
+According to this code first argument is rx the second one is tx and the third one are bauds.
+
+Let's take a closer look to the functions that are contained in the Sigfox library:
+
+## int getTemperature()
+This simple function returns temperature of the Radiocrafts chip. Function will send one byte with value 0x00 to the chip which means that mode is changed to the configuration mode. In the next step one byte with value 0x55 will be sent to the chip. According to the official documentation 0x55 is one of the configuration commands. This command returns one byte indicating the temperature. Value that is returned by function getTempertature is in celsius.
+
+### Example of usage
+
+```cpp
+Sigfox sgf(7, 8, 19200);
+Serial.print(String(sgf.getTemperature()));
+// 7 = rx, 8 = tx, 19200 = bauds
+```
+## int getSignalRSSI()
+Just like the previous function this one is using configuration command so chip is switched into the configuration mode and then is one byte with 0x53 value sent. If a valid packet has been received when in configuration mode, it will return the RSSI of the last received packet. According to the chip documentation there is a mathematical formula that must be used for received value.
+:::info
+P = - RSSI / 2 [dBm]
+:::
+This formula is included in the function so there is no need for next operations with received integer.
+
+## int getSignalQuality()
+Another function that is using configuration command. This time will send one byte with value 0x51. There is no need for next operation with returned value. Value returned by chip is based on bit errors in preamble and synch word.
+
+
+## float getVoltage()
+Function based on configuration command again. Byte with value 0x56 is sent. According to the documentation value that is returned from chip is multiplied by 0.030. This function is usefull when you are experimenting with alternative power sources or troubleshooting.
+
+## char intToString(int inputNumber)
+Is very simple function that has nothing to do with Radiocrafts chip. It just takes the integer input parameter and converts it to the char. 
+
+## void parse_int_to_12bytes(unsigned char *bytes, unsigned long a, unsigned long b, unsigned long c)
+This function is very important. As already mentioned above - to the Sigfox network can be transmitted only 12 bytes of data. This function pack those data in to the byte array. Thanks to this solution there is no need for separators that would be unnecessarily take up space. On the other hand the code that unpacks data must be written for web application.
+
+The long datatype is used because long has 32 bits in Arduino implementation. The input long parameters are simply spread out in to the char array of bytes by bit shuffeling. There is no return value char array that is simultaneously input parameter should be used.
+
+### Example of usage
+```cpp
+Sigfox sgf(7, 8, 19200);
+long test = 1234576;
+long test2 = 7894561;
+long test3 = 4567891;
+unsigned char bytes[12] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+sgf.parse_int_to_12bytes(bytes, test,test2,test3);
+
+Serial.print(bytes, HEX);
+//Bytes: 90d612002176780053b34500
+```
+
+## void sendString(String string)
+One of the most important function of the Sigfox library. Function will send one byte with value "X" to the chip which means that mode of the chip is not in configuration mode (exit of configuraion mode). Then length of the string from parameter is sent to the Sigfox network (let Sigfox know how much data to expect) after that bytes of the string are sent into the Sigfox network. There is no information if informations were successfully sent to the IoT.
+
+## void sendBytes(unsigned char *bytes)
+Alternative to previous function is sendBytes function that will instead of string send char array of bytes. It works great in combination with parse_int_to_12bytes function.
+
+So these functions from Sigfox Library cover the possibilities of Radiocrafts chip and there are some other functions in this library that will make usage of this library more pleasant. Let's move to the next library that was written for the purposes of this project - Electrometer library. But before that let's take a look at the technical background.
+
+# Reading data from electrometer
+As already mentioned above for the reading data from electrometer IEC 62056-21 optical interface is used. The technical documentation of the standard was very brief, so it was not easy to write this library. Code was tested on the three different electrometers and the final one that was released should be working fine on most of the electrometers.
+
+First of all there are four modes of communication. Protocol mode A, B, C and D. There are different options and limitations in those protocols.
+
+## Protocol mode A
+Protocol mode A supports bidirectional data exchange at 300 baud without baud rate switching.This protocol mode permits data readout and programming with optional password protection.
+
+The tariff device transmits the data message immediately following the identification message. The data transmission is complete after the data message has been transmitted by the tariffdevice. An acknowledge signal is not provided. 
+
+## Protocol mode B
+Protocol mode B supports bidirectional data exchange with baud rate switching. This protocolmode permits data readout and programming with optional password protection.
+
+During the interval the tariff device and switch over to the baud rateprescribed in the identification message. Following this the tariff device transmits the datamessage at the new baud rate.
+
+After data readout programming mode could be immediately entered. Programming mode usually require password and is not part of this project.
+
+## Protocol mode C
+
+Protocol mode C supports bidirectional data exchange with baud rate switching and permitsdata readout, programming with enhanced security and manufacturer-specific modes.
+
+After the identification message has been transmitted, the tariff device waits for theacknowledge/option select message. This may be a request for data readout, aswitch to programming mode, or a switch to manufacturer-specific operation.
+
+## Protocol mode D
+Protocol mode D supports unidirectional data exchange at a fixed baud rate of 2400 baud and permits data readout only. It requires hardware button that must be pushed on the electrometer for data readout.
+
+## Protocol mode E
+Finally protocol mode E which is used for other protocols. For example High-Level Data Link Control (HDLC) could be used in this mode. For more information please check official standart documentation.
+
+## OBIS codes
+OBIS stands for Object Identification System. OBIS provides standard identifiers for all data within the metering equipment, both measurement values and abstract values. OBIS names are used for the identification of COSEM (COmpanion Specification for Energy Metering) objects and also for identification of the data displayed on the meter and transmitted through the communication line to the data collection system.
+
+## Messages
+There are some messages that are send to the electrometer via optical interface.
+
+### Request message
+Opening message to the tariff device. The device address is optional.
+
+![](https://i.imgur.com/1FhcBIt.png)
+
+Device address is a serial number of device. This register has address "0-0:C.1.0" - Device ID 1, manufacturing number in OBIS addressing. Device address is optional parameter it should be used if several devices are connected to one line (e.g. RS485 bus).
+
+The picture below shows the front panel of EMH LZQJ device. There is serial number, i.e. IEC address (563911). If device contains a display, this value may be displayed as you can see on the picture.
+
+![](https://i.imgur.com/8vD7Ovr.png)
+
+
+
+
+<!-- https://www.d2000.eu/en/lang/reference-guides/d2000-v9-02-034/protokoly-dlms
+-->
+
+
+

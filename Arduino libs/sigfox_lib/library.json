@@ -1,0 +1,11 @@
+{
+	"name": "sigfoxlib",
+	"keywords": "sigfox, IoT",
+	"description": "Library for sending data to the Sigfox IoT network. It also contains methods for reading temperature, signal strenght etc.",
+	"repository": {
+		"type": "git",
+		"url": "https://bitbucket.org/The_Great_Cornholio/electrometer-project"
+	},
+	"frameworks": "arduino",
+	"platforms": ["atmelavr", "atmelsam"]
+}

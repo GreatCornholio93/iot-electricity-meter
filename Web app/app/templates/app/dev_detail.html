@@ -1,0 +1,191 @@
+
+{% include 'app/header.html' %}
+
+    <body>
+    <main>
+    <div class="row">
+    <div class="container">
+    <h2>Data from {{ dev_id }} device:</h2>
+<div style="width: 75%">
+
+<div class="col s12">
+ <form action="/devices/data/query/" method="post">
+                    {% csrf_token %}
+           <input type="hidden" value="{{ dev_id }}" name="query_data">
+           <button type="submit" value="Query" class="waves-effect waves-light btn red darken-1">Query data</button>
+         
+</form>
+      <ul class="tabs">
+        <li class="tab col s3"><a href="#canvas" class="active">Denní tarif</a></li>
+        <li class="tab col s3"><a href="#canvas2">Noční tarif</a></li>
+        <li class="tab col s3"><a href="#canvas3">Celkem</a></li>
+      </ul>
+    </div>
+
+        <canvas id="canvas"></canvas>
+        <canvas id="canvas2"></canvas>
+        <canvas id="canvas3"></canvas>
+</div>
+
+
+ 
+<div class="section">
+
+<script>
+       
+       {% autoescape off %}
+        var chartData = {
+            labels: {{ dates }},
+            datasets: [{
+                type: 'line',
+                label: 'Values are in kWh',
+                borderColor: window.chartColors.green,
+                borderWidth: 2,
+                fill: false,
+                data: {{ values1 }}
+
+            }]
+};
+
+
+ var chartData2 = {
+            labels: {{ dates }},
+            datasets: [{
+                type: 'line',
+                label: 'Values are in kWh',
+                borderColor: window.chartColors.green,
+                borderWidth: 2,
+                fill: false,
+                data: {{ values2 }}
+            }]
+};
+
+var chartData3 = {
+            labels: {{ dates }},
+            datasets: [{
+                type: 'line',
+                label: 'Values are in kWh',
+                borderColor: window.chartColors.red,
+                borderWidth: 2,
+                fill: false,
+                data: {{ values3 }}
+            }]
+};
+
+ {% endautoescape %}       
+       window.onload = function() {
+            var ctx = document.getElementById("canvas").getContext("2d");
+            window.myMixedChart = new Chart(ctx, {
+                type: 'bar',
+                data: chartData,
+                options: {
+                    responsive: true,
+                    title: {
+                        display: true,
+                        text: '1.8.0 Data'
+                    },
+                    tooltips: {
+                        mode: 'index',
+                        intersect: true
+                    }
+                }
+            });
+
+            var ctx2 = document.getElementById("canvas2").getContext("2d");
+            window.myMixedChart = new Chart(ctx2, {
+                type: 'bar',
+                data: chartData2,
+                options: {
+                    responsive: true,
+                    title: {
+                        display: true,
+                        text: '1.8.2 Data'
+                    },
+                    tooltips: {
+                        mode: 'index',
+                        intersect: true
+                    }
+                }
+            });
+
+           var ctx3 = document.getElementById("canvas3").getContext("2d");
+            window.myMixedChart = new Chart(ctx3, {
+                type: 'bar',
+                data: chartData3,
+                options: {
+                    responsive: true,
+                    title: {
+                        display: true,
+                        text: '21.8.0'
+                    },
+                    tooltips: {
+                        mode: 'index',
+                        intersect: true
+                    }
+                }
+            });
+        };
+
+        document.getElementById('randomizeData').addEventListener('click', function() {
+            chartData.datasets.forEach(function(dataset) {
+                dataset.data = dataset.data.map(function() {
+                    return randomScalingFactor();
+                });
+            });
+            window.myMixedChart.update();
+        });
+
+    </script>
+</div>
+
+
+
+ 
+     
+    <div class="divider"></div>
+ <div class="section">
+ <table class="striped" class="responsive-table">
+        <thead>
+          <tr>
+              <th>regularTime</th>
+              <th>Data1</th>
+              <th>Data2</th>
+              <th>Data3</th>
+              <th>linkQuality</th>
+              <th>snr</th>
+              <th>UnixTime</th>
+          </tr>
+        </thead>
+
+        <tbody>
+         {% for lib in dataset %}
+          <tr>
+             
+            <td>{{ lib.regularTime }}</td>
+            <td>{{ lib.data1 }}</td>
+            <td>{{ lib.data2 }}</td>
+            <td>{{ lib.data3 }}</td>
+            <td>{{ lib.linkQuality}}</td>
+            <td>{{ lib.snr}}</td>
+            <td>{{ lib.UnixTime}}</td>
+              
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+</div>
+		
+		
+
+		
+	
+	
+</div>
+</body>
+      <script type="text/javascript" src="https://code.jquery.com/jquery-2.1.1.min.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.98.2/js/materialize.min.js"></script>
+      <script>$(document).ready(function(){
+    $('ul.tabs').tabs();
+  });</script>
+</main>
+{% include 'app/footer.html' %}

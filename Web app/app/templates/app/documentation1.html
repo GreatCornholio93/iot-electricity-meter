@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My first file</title>
+  <link rel="stylesheet" href="http://app.classeur.io/base-min.css" />
+  <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML"></script>
+</head>
+
+<body>
+  <div class="export-container"><h1 id="iot---sigfox-semestral-project">IOT - Sigfox Semestral Project</h1>
+<p>Following pages contains technical documentation to the semestral project that was dedicated to the internet of things (IOT). More specifically to the implementation of “smart” electrometer that is sending data to the SIGFOX which is global provider of the IOT. Data that are stored on the SIGFOX servers are presented by web application.</p>
+<h1 id="what-is-sigfox">What is SIGFOX?</h1>
+<p>The primary technology of this project should be introduced - Sigfox is a IoT wireless network system utilizing ETSI’s (European Telecommunications Standards Institute) specification for Low Throughput Networks (LTN) and Ultra Narrow-Band (UNB) modulation. The signal that is send is specifically the uplink between the IoT device and the central network station. This uplink employs BPSK modulation with ultra-narrowband technology and pseudo-random frequency hopping. Messages are very short. User has a maximum of 12 bytes of info available.</p>
+<p>The SIGFOX radio link uses unlicensed ISM radio bands. The exact frequencies can vary according to national regulations, but in Europe the 868MHz band is widely used and in the US it is 915MHz.</p>
+<p>The density of the cells in the Sigfox network is based on an average range of about 30-50km in rural areas and in urban areas where there are usually more obstructions and noise is greater the range may be reduced to between 3 and 10km. Distances can be much higher for outdoor nodes where Sigfox states line of sight messages could travel over 1000km.</p>
+<p>The overall Sigfox network topology has been designed to provide a scalable, high-capacity network, with very low energy consumption, while maintaining a simple and easy to rollout star-based cell infrastructure.</p>
+<p>Technology is aimed at the low cost machine to machine application areas where wide area coverage is required. There are a number of applications that need this form of low cost wireless communications technology. Areas where the SIGFOX network may be used include:</p>
+<ul>
+<li>Home and consumer goods</li>
+<li>Energy related communications - in particular smart metering</li>
+<li>Healthcare - in particular the mHealth applications that are starting to be developed</li>
+<li>Transportation - this can include the automotive management</li>
+<li>Remote monitoring and control</li>
+<li>Retail including point of sale, shelf updating, etc</li>
+<li>Security</li>
+</ul>
+<p><img src="https://i.imgur.com/rPHbiaG.png" alt=""><br>
+<em>Image 1: Basic Sigfox functionality</em></p>
+<p>The Sigfox network performance is characterised by the following:</p>
+<ul>
+<li>Up to 140 messages per object per day</li>
+<li>Payload size for each message is 12 bytes</li>
+<li>Wireless throughput up to 100 bits per second</li>
+</ul>
+<h1 id="technical-specification">Technical specification</h1>
+<p>Let’s start from the lowest layer - hardware. For the project was used modified Arduino UNO with Radiocrafts RC1682 transreceiver. There are 6 digital input/outputs, analog input/output, UART and digital input for processor interrupt. There is antenna lambda/4 length (recommended by Radiocrafts) too. The data are captured from the IEC 62056-21 standart optical interface. Reading probe is connected to the Arduino by serial port. Radiocraft chip is connected to the digital ports of the Arduino.</p>
+<h1 id="programmed-libraries">Programmed libraries</h1>
+<p>There are two libraries that were written for the purposes of this project. One is dealing with Radiocrafts module (Sigfox_lib) and the second one is dealing with reading from electrometer (Electrometer_lib). Both of them are written in C++ that is slightly modified for Arduino. The following lines will provide a more detailed description of these libraries.</p>
+<h1 id="sigfox_lib">Sigfox_lib</h1>
+<p>This library contains some basic methods like getTemperature() (of the Radiocrafts chip). The most important function is probably sendString(String s) that sends string to the IoT by Radiocrafts chip. There is alternative for sending data function too It is called sendBytes() that will sends bytes.</p>
+<p>So first of all object must be created. That can be done by calling constructor:</p>
+<pre class=" language-cpp"><code class="prism  language-cpp">Sigfox <span class="token function">sgf</span><span class="token punctuation">(</span><span class="token number">7</span><span class="token punctuation">,</span> <span class="token number">8</span><span class="token punctuation">,</span> <span class="token number">19200</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token comment" spellcheck="true">// 7 = rx, 8 = tx, 19200 = bauds</span>
+</code></pre>
+<p>According to this code first argument is rx the second one is tx and the third one are bauds.</p>
+<p>Let’s take a closer look to the functions that are contained in the Sigfox library:</p>
+<h2 id="int-gettemperature">int getTemperature()</h2>
+<p>This simple function returns temperature of the Radiocrafts chip. Function will send one byte with value 0x00 to the chip which means that mode is changed to the configuration mode. In the next step one byte with value 0x55 will be sent to the chip. According to the official documentation 0x55 is one of the configuration commands. This command returns one byte indicating the temperature. Value that is returned by function getTempertature is in celsius.</p>
+<h3 id="example-of-usage">Example of usage</h3>
+<pre class=" language-cpp"><code class="prism  language-cpp">Sigfox <span class="token function">sgf</span><span class="token punctuation">(</span><span class="token number">7</span><span class="token punctuation">,</span> <span class="token number">8</span><span class="token punctuation">,</span> <span class="token number">19200</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+Serial<span class="token punctuation">.</span><span class="token function">print</span><span class="token punctuation">(</span><span class="token function">String</span><span class="token punctuation">(</span>sgf<span class="token punctuation">.</span><span class="token function">getTemperature</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token comment" spellcheck="true">// 7 = rx, 8 = tx, 19200 = bauds</span>
+</code></pre>
+<h2 id="int-getsignalrssi">int getSignalRSSI()</h2>
+<p>Just like the previous function this one is using configuration command so chip is switched into the configuration mode and then is one byte with 0x53 value sent. If a valid packet has been received when in configuration mode, it will return the RSSI of the last received packet. According to the chip documentation there is a mathematical formula that must be used for received value.<br>
+:::info<br>
+P = - RSSI / 2 [dBm]<br>
+:::<br>
+This formula is included in the function so there is no need for next operations with received integer.</p>
+<h2 id="int-getsignalquality">int getSignalQuality()</h2>
+<p>Another function that is using configuration command. This time will send one byte with value 0x51. There is no need for next operation with returned value. Value returned by chip is based on bit errors in preamble and synch word.</p>
+<h2 id="float-getvoltage">float getVoltage()</h2>
+<p>Function based on configuration command again. Byte with value 0x56 is sent. According to the documentation value that is returned from chip is multiplied by 0.030. This function is usefull when you are experimenting with alternative power sources or troubleshooting.</p>
+<h2 id="char-inttostringint-inputnumber">char intToString(int inputNumber)</h2>
+<p>Is very simple function that has nothing to do with Radiocrafts chip. It just takes the integer input parameter and converts it to the char.</p>
+<h2 id="void-parse_int_to_12bytesunsigned-char-bytes-unsigned-long-a-unsigned-long-b-unsigned-long-c">void parse_int_to_12bytes(unsigned char *bytes, unsigned long a, unsigned long b, unsigned long c)</h2>
+<p>This function is very important. As already mentioned above - to the Sigfox network can be transmitted only 12 bytes of data. This function pack those data in to the byte array. Thanks to this solution there is no need for separators that would be unnecessarily take up space. On the other hand the code that unpacks data must be written for web application.</p>
+<p>The long datatype is used because long has 32 bits in Arduino implementation. The input long parameters are simply spread out in to the char array of bytes by bit shuffeling. There is no return value char array that is simultaneously input parameter should be used.</p>
+<h3 id="example-of-usage-1">Example of usage</h3>
+<pre class=" language-cpp"><code class="prism  language-cpp">Sigfox <span class="token function">sgf</span><span class="token punctuation">(</span><span class="token number">7</span><span class="token punctuation">,</span> <span class="token number">8</span><span class="token punctuation">,</span> <span class="token number">19200</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token keyword">long</span> test <span class="token operator">=</span> <span class="token number">1234576</span><span class="token punctuation">;</span>
+<span class="token keyword">long</span> test2 <span class="token operator">=</span> <span class="token number">7894561</span><span class="token punctuation">;</span>
+<span class="token keyword">long</span> test3 <span class="token operator">=</span> <span class="token number">4567891</span><span class="token punctuation">;</span>
+<span class="token keyword">unsigned</span> <span class="token keyword">char</span> bytes<span class="token punctuation">[</span><span class="token number">12</span><span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token punctuation">{</span><span class="token number">0</span><span class="token punctuation">,</span> <span class="token number">0</span><span class="token punctuation">,</span> <span class="token number">0</span><span class="token punctuation">,</span> <span class="token number">0</span><span class="token punctuation">,</span> <span class="token number">0</span><span class="token punctuation">,</span> <span class="token number">0</span><span class="token punctuation">,</span> <span class="token number">0</span><span class="token punctuation">,</span> <span class="token number">0</span><span class="token punctuation">,</span> <span class="token number">0</span><span class="token punctuation">,</span> <span class="token number">0</span><span class="token punctuation">,</span> <span class="token number">0</span><span class="token punctuation">,</span> <span class="token number">0</span><span class="token punctuation">}</span><span class="token punctuation">;</span>
+sgf<span class="token punctuation">.</span><span class="token function">parse_int_to_12bytes</span><span class="token punctuation">(</span>bytes<span class="token punctuation">,</span> test<span class="token punctuation">,</span>test2<span class="token punctuation">,</span>test3<span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+Serial<span class="token punctuation">.</span><span class="token function">print</span><span class="token punctuation">(</span>bytes<span class="token punctuation">,</span> HEX<span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token comment" spellcheck="true">//Bytes: 90d612002176780053b34500</span>
+</code></pre>
+<h2 id="void-sendstringstring-string">void sendString(String string)</h2>
+<p>One of the most important function of the Sigfox library. Function will send one byte with value “X” to the chip which means that mode of the chip is not in configuration mode (exit of configuraion mode). Then length of the string from parameter is sent to the Sigfox network (let Sigfox know how much data to expect) after that bytes of the string are sent into the Sigfox network. There is no information if informations were successfully sent to the IoT.</p>
+<h2 id="void-sendbytesunsigned-char-bytes">void sendBytes(unsigned char *bytes)</h2>
+<p>Alternative to previous function is sendBytes function that will instead of string send char array of bytes. It works great in combination with parse_int_to_12bytes function.</p>
+<p>So these functions from Sigfox Library cover the possibilities of Radiocrafts chip and there are some other functions in this library that will make usage of this library more pleasant. Let’s move to the next library that was written for the purposes of this project - Electrometer library. But before that let’s take a look at the technical background.</p>
+<h1 id="reading-data-from-electrometer">Reading data from electrometer</h1>
+<p>As already mentioned above for the reading data from electrometer IEC 62056-21 optical interface is used. The technical documentation of the standard was very brief, so it was not easy to write this library. Code was tested on the three different electrometers and the final one that was released should be working fine on most of the electrometers.</p>
+<p>First of all there are four modes of communication. Protocol mode A, B, C and D. There are different options and limitations in those protocols.</p>
+<h2 id="protocol-mode-a">Protocol mode A</h2>
+<p>Protocol mode A supports bidirectional data exchange at 300 baud without baud rate switching.This protocol mode permits data readout and programming with optional password protection.</p>
+<p>The tariff device transmits the data message immediately following the identification message. The data transmission is complete after the data message has been transmitted by the tariffdevice. An acknowledge signal is not provided.</p>
+<p>For a better idea of functionality please check following image:</p>
+<p><img src="https://i.imgur.com/bVfQ0Fi.png" alt=""><br>
+HHU stands for hand-held unit. As you can see data are returned immediately after first message that was send into the electrometer.</p>
+<h2 id="protocol-mode-b">Protocol mode B</h2>
+<p>Protocol mode B supports bidirectional data exchange with baud rate switching. This protocolmode permits data readout and programming with optional password protection.</p>
+<p>During the interval the tariff device and switch over to the baud rateprescribed in the identification message. Following this the tariff device transmits the datamessage at the new baud rate.</p>
+<p>After data readout programming mode could be immediately entered. Programming mode usually require password and is not part of this project.</p>
+<h2 id="protocol-mode-c">Protocol mode C</h2>
+<p>Protocol mode C supports bidirectional data exchange with baud rate switching and permitsdata readout, programming with enhanced security and manufacturer-specific modes.</p>
+<p>After the identification message has been transmitted, the tariff device waits for theacknowledge/option select message. This may be a request for data readout, aswitch to programming mode, or a switch to manufacturer-specific operation.</p>
+<h2 id="protocol-mode-d">Protocol mode D</h2>
+<p>Protocol mode D supports unidirectional data exchange at a fixed baud rate of 2400 baud and permits data readout only. It requires hardware button that must be pushed on the electrometer for data readout.</p>
+<h2 id="protocol-mode-e">Protocol mode E</h2>
+<p>Finally protocol mode E which is used for other protocols. For example High-Level Data Link Control (HDLC) could be used in this mode. For more information please check official standart documentation.</p>
+<h2 id="obis-codes">OBIS codes</h2>
+<p>OBIS stands for Object Identification System. OBIS provides standard identifiers for all data within the metering equipment, both measurement values and abstract values. OBIS names are used for the identification of COSEM (COmpanion Specification for Energy Metering) objects and also for identification of the data displayed on the meter and transmitted through the communication line to the data collection system.</p>
+<p>On the pictures bellow you can see data that was obtained from Protocol mode B electrometer:<br>
+<img src="https://i.imgur.com/q5Sn2iz.png" alt=""></p>
+<p>For example 1.8.0 stands for positive active energy (A+) total value is in kilowatt hour. There are websites where you can find meaning of all OBIS codes.</p>
+<h2 id="messages">Messages</h2>
+<p>There are some messages that are send to the electrometer via optical interface.</p>
+<h3 id="request-message">Request message</h3>
+<p>Opening message to the tariff device:</p>
+<p><img src="https://i.imgur.com/1FhcBIt.png" alt=""></p>
+<p>Device address is a serial number of device. This register has address “0-0:C.1.0” - Device ID 1, manufacturing number in OBIS addressing. Device address is optional parameter it should be used if several devices are connected to one line (e.g. RS485 bus).</p>
+<p>The picture below shows the front panel of EMH LZQJ device. There is serial number, i.e. IEC address (563911). If device contains a display, this value may be displayed as you can see on the picture.</p>
+<p><img src="https://i.imgur.com/8vD7Ovr.png" alt=""></p>
+<p>The electrometer device should send answer immediately. Answer could be something like:  /AMP05196A-61B {cr}{lf}</p>
+<p>This message is called identification message and has following scheme:</p>
+<p><img src="https://i.imgur.com/7drCuJN.png" alt=""></p>
+<p>The X letters stands for manufacturer’s identification. Letter Z stands for baud rate identification. Backslash stands for sequence delimite which should be followed by one character field - this is optional. W letter stands for enhanced baud rate and mode identification character (optional field). Identification is manufacturer-specific, 16 printable characters maximum except for “/” and"!". “”.</p>
+<p>So basically after opening message you should receive identification string that is specified by manufacturer in most cases it contains model of electrometer. In protocol mode A you receive full output that was specified by manufacturer.</p>
+<!-- https://www.d2000.eu/en/lang/reference-guides/d2000-v9-02-034/protokoly-dlms&#10;-->
+<h2 id="web-application">Web application</h2>
+<h3 id="used-technology">Used technology</h3>
+<p>The main technology that was used for creating web application for this project was Django which is a high-level Python Web framework that encourages rapid development and clean, pragmatic design. Django is great framework for development but there is one disadvantage - there are few server hosting services that provides hosting for Django based web applications. Probably the best solution for this is get some cloud computing service for this kind of application.</p>
+<p>This web application is using SQLite3 database it is integrated directly into Django so it provides better access to the data. But there should not be a problem to migrate data to different database solution and use different database instead the original one.</p>
+<p>For the styling of the web pages was used Materialize framework that provides responsible, modern design based on Material design that was created by Google. Materialize framework provides big amount of various features.</p>
+<p>For graphical representation of that was used Chart.js framework that is build on javascript. It is simple to use code with various options.</p>
+<p>For easily adding links to the menu was used Django module that is called Simple Menu. It must be downloaded for correct functionality of this web application. This is how you can get it:</p>
+<p>:::info<br>
+pip simple-menu<br>
+:::</p>
+<h3 id="database-populating">Database populating</h3>
+<p>So we need to obtain data from the device. This web app implements two ways how you can populate your database with data.</p>
+<h4 id="sigfox-callbacks">Sigfox callbacks</h4>
+<p>Sigfox provides callbacks. That means you can set up how you get informed about message that was received by Sigfox server. For example you can get email when your device sends data to IoT. This web application is designed to receive POST requests.</p>
+<p>When you add new device into the system there is generated following link:<br>
+:::info<br>
+<a href="http://webappurl.com/manage/sigfoxDeviceID/postdatafromcallback">http://webappurl.com/manage/sigfoxDeviceID/postdatafromcallback</a><br>
+:::<br>
+This link must be used in Sigfox backend when you set up structure of message that will be sent to the web application from Sigfox. This web application is designed for the following data format:<br>
+:::info<br>
+{<br>
+“device” : “{device}”,<br>
+“time” : {time},<br>
+“data” : “{data}”,<br>
+“snr”  : “{snr}”,<br>
+“linkQuality”: “{avgSnr}”<br>
+}<br>
+:::</p>
+<p>Data should be packed into 12 byte array how it is done by Sigfox function that was mentioned before.</p>
+<p><img src="https://i.imgur.com/RowF90W.png" alt=""></p>
+<p>Disadvantage of this solution is that your website must be publicly visible in the intertet so Sigfox servers can send a request to you. The second disadvantage is that when your web app comes down you are not able to receive your data. But it is a solution with minimal overhead</p>
+<h3 id="server-side-scheduled-task">Server-side scheduled task</h3>
+<p>Django provides creating “Managed scripts”. Those scripts are great for periodical operations for example for populating database. In this case you just execute following command:</p>
+<p>Database of the web app is checked for the last database entry and then Sigfox web api is contacted for sufficient data. Those data are formatted and inserted into database.</p>
+<p>The disadvantage of this solution is that you have to set up scheduled tasks if you want to do it periodically.</p></div>
+</body>
+
+</html>

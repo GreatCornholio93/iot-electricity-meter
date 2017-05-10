@@ -1,0 +1,26 @@
+{% include 'app/header.html' %}
+{% load staticfiles %}
+<body>
+<main>
+
+    <div class="container">
+        <h1>Get device data: </h1>
+        <div class="row">
+            <form action="/devices/data/query/a" method="post" class="col s12">
+                {% csrf_token %}
+                <div class="row">
+                    <label for="device">Device:</label>
+                    <input id="device" type="text" name="data_query_device" value="{{ sigfoxid }}">
+                    <label for="sigfox-id">From:</label>
+                    <input id="sigfox-id" type="datetime-local" name="data_query_from">
+                    <label for="api-login">To: </label>
+                    <input id="api-login" type="datetime-local" name="data_query_to">
+                    <button type="submit" value="Submit" class="waves-effect waves-light btn">Submit</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <script type="text/javascript" src="https://code.jquery.com/jquery-2.1.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.98.2/js/materialize.min.js"></script>
+</main>
+{% include 'app/footer.html' %}
