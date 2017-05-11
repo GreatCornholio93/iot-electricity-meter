@@ -1,27 +1,14 @@
-#include "Arduino.h"
 #include "electrometer.h"
-#include <SoftwareSerial.h>
+
 
 Electrometer::Electrometer()
 {
 	e1 = 0;
 	e2 = 0;
 	e3 = 0;
-	isDebug = false;
-	Serial.begin(300, SERIAL_7E1);
-}
-
-Electrometer::Electrometer(int rx, int tx, int baud)
-{
-	e1 = 0;
-	e2 = 0;
-	e3 = 0;
 	isDebug = true;
-
-	SoftwareSerial DEBUG(rx, tx);
-	DEBUG.begin(baud);
-	DEBUG.println("Starting debug serial interface");
-	Serial.begin(300, SERIAL_7E1);
+	Serial.begin(300,SERIAL_7E1);	
+	
 }
 
 int Electrometer::readData()
@@ -35,8 +22,6 @@ int Electrometer::readData()
 
 void Electrometer::sendHello()
 {
-	if (isDebug)
-		DEBUG.println("Sending hello");
 	// send hello message /?! RC LF
 	Serial.print("/?!\r\n");
 }
@@ -44,12 +29,9 @@ void Electrometer::sendHello()
 // read answer to the hello message - usually ID or ID and DATA
 void Electrometer::readHello()
 {
-	lastTime = millis();
+	long lastTime = millis();
 	char c;
 	String data = "";
-
-	if (isDebug)
-		DEBUG.print(c);
 
 	bool lfWaiting = false;
 
@@ -76,48 +58,60 @@ void Electrometer::readHello()
 
 void Electrometer::sendRequest()
 {  
-	if (isDebug)
-		DEBUG.println("Send data request");
+
 	// send data request [ACK]000 CR LF
 	byte message[] = {0x06, 0x30, 0x30, 0x30, 0x0d, 0x0a};
-    Serial.write(message, sizeof(message));
+	Serial.write(message, sizeof(message));
 }
 
-String Electrometer::parseFromResult(String s, String OBIS)
+long Electrometer::parseFromResult(String s, String OBIS)
 {
    char *str = s.c_str();
-   char *result = strstr(str, OBIS);
+   char *result = strstr(str, OBIS.c_str());
    int position = result - str;
    int substringLength = strlen(str) - position;
-   String s = s.substring(position+4,position + 20);
-
+   //Serial.print(position);
+   //Serial.print("\n");
+   //Serial.print(substringLength);
+   //String test;
+   String stringValue = s.substring(position+4,position + 20);
+ 
    //get index of (
-   char *tast = s.c_str();
+   char *tast = stringValue.c_str();
    char *result2 = strstr(tast, "(");
    int position2 = result2 - tast;
-
+ 
    //get index of )
+   //char *stringValue = stringValue.c_str();
+   
    char *result3 = strstr(tast, ")");
    int position3 = result3 - tast;
-
-   String parsed = s.substring(position2+1,position3);
-    
-   return parsed;
-}
+ 
+   String stringValue2 = stringValue.substring(position2+1,position3);
+ 
+  //REMOVE KWH SUBSTRING
+  stringValue2.replace("*kWh","");
+  stringValue2.replace(",","");
+  long longNumber = stringValue2.toInt();
+   /*char * pch;*/
+  return longNumber;
+  // pch = strtok (string, "#CR#LF0.9.2");
+ 
+   //return pch;
+ 
+}  
 
 // read data response from electrometer and try parse
 // parsed values save to variable e1, e2, e3
 // return: x if parse successful y if not
 int Electrometer::readResponse()
 {
-	lastTime = millis();
+	long lastTime = millis();
 	char c;
 	String data = "";
 
-	if (isDebug)
-		DEBUG.print(c);
 	
-	while ((lasttime + TIMEOUT) > millis())
+	while ((lastTime + TIMEOUT) > millis())
 	{
 		if (Serial.available() > 0)
 		{
